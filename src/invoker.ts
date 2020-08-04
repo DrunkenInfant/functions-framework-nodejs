@@ -101,7 +101,11 @@ function sendResponse(result: any, err: Error | null, res: express.Response) {
  * @return An Express handler function.
  */
 function makeHttpHandler(execute: HttpFunction): express.RequestHandler {
-  return (req: express.Request, res: express.Response) => {
+  return (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
     const d = domain.create();
     // Catch unhandled errors originating from this request.
     d.on('error', err => {
@@ -114,7 +118,7 @@ function makeHttpHandler(execute: HttpFunction): express.RequestHandler {
     });
     d.run(() => {
       process.nextTick(() => {
-        execute(req, res);
+        execute(req, res, next);
       });
     });
   };
@@ -243,7 +247,7 @@ function wrapEventFunction(
  * @param userFunction User's function.
  * @param functionSignatureType Type of user's function signature.
  */
-function registerFunctionRoutes(
+export function registerFunctionRoutes(
   app: express.Application,
   userFunction: HandlerFunction,
   functionSignatureType: SignatureType
@@ -326,16 +330,10 @@ export class ErrorHandler {
 }
 
 /**
- * Creates and configures an Express application and returns an HTTP server
- * which will run it.
- * @param userFunction User's function.
- * @param functionSignatureType Type of user's function signature.
- * @return HTTP server.
+ * Creates and configures an Express application.
+ * @return app Express application
  */
-export function getServer(
-  userFunction: HandlerFunction,
-  functionSignatureType: SignatureType
-): http.Server {
+export function getApp(): express.Application {
   // App to use for function executions.
   const app = express();
 
@@ -398,6 +396,21 @@ export function getServer(
   // Subsequent parsers will be skipped when one is matched.
   app.use(bodyParser.raw(rawBodySavingOptions));
   app.enable('trust proxy'); // To respect X-Forwarded-For header.
+  return app;
+}
+
+/**
+ * Creates and configures an Express application and returns an HTTP server
+ * which will run it.
+ * @param userFunction User's function.
+ * @param functionSignatureType Type of user's function signature.
+ * @return HTTP server.
+ */
+export function getServer(
+  userFunction: HandlerFunction,
+  functionSignatureType: SignatureType
+): http.Server {
+  const app = getApp();
 
   registerFunctionRoutes(app, userFunction, functionSignatureType);
   return http.createServer(app);

@@ -15,8 +15,11 @@
 import * as express from 'express';
 
 export interface HttpFunction {
-  // tslint:disable-next-line:no-any express interface.
-  (req: express.Request, res: express.Response): any;
+  (
+    req: express.Request,
+    res: express.Response,
+    next?: express.NextFunction
+  ): any; // tslint:disable-line:no-any express interface.
 }
 export interface EventFunction {
   // tslint:disable-next-line:no-any
